@@ -2,6 +2,8 @@ const rehypePrism = require('@mapbox/rehype-prism');
 const { createLoader } = require('simple-functional-loader');
 
 module.exports = {
+  // Required for static path routing
+  exportTrailingSlash: true,
   pageExtensions: ['tsx', 'mdx'],
   webpack: (config, options) => {
     const mdx = [

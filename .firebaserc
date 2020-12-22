@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "mjlawson-net-firebase-dev",
+    "dev": "mjlawson-net-firebase-dev",
+    "prod": "mlawson-net-firebase-pro-4b38c"
+  }
+}

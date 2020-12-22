@@ -1,0 +1,13 @@
+steps:
+  - name: node:12-alpine
+    entrypoint: npm
+    args: ['install', '-g', 'firebase-tools']
+  - name: node:12-alpine
+    entrypoint: npm
+    args: ['install']
+  - name: node:12-alpine
+    entrypoint: npm
+    args: ['run', 'build']
+  - name: 'node:12-alpine'
+    entrypoint: './node_modules/.bin/firebase'
+    args: ['deploy', '--project', '$_ENVIRONMENT', '--token', '$_TOKEN']

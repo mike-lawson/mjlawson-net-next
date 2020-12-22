@@ -3,8 +3,12 @@ const mdx = require('@mdx-js/mdx');
 
 module.exports = {
   purge: {
-    mode: 'all',
-    content: ['./pages/*.{tsx}', './components/**.tsx', './next.config.js'],
+    content: [
+      './src/pages/**/*.{tsx}',
+      './src/components/**/*.tsx',
+      './next.config.js',
+      './src/styles/**/*.css',
+    ],
   },
   theme: {
     extend: {
