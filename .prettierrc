@@ -3,5 +3,12 @@
   "tabWidth": 2,
   "printWidth": 100,
   "singleQuote": true,
-  "jsxBracketSameLine": true
+  "overrides": [
+    {
+      "files": "*.mdx",
+      "options": {
+        "printWidth": 60
+      }
+    }
+  ]
 }

@@ -1,0 +1,220 @@
+export const meta = {
+  title: 'How to type generators with TypeScript',
+  description: 'A preview description',
+  posted: new Date(),
+};
+
+<!--excerpt-->
+
+Typing generators can be a bit tricky, especially in advanced cases. In this post we'll dive into the behavior of generators, some limitations of TypeScript, and how to work around them.
+
+<!--/excerpt-->
+
+Before we begin, I'm going to assume that you are fairly familiar with generators. The [Exploring JS book](https://exploringjs.com/es6/ch_generators.html) has a wonderful chapter that I would highly recommend reading if you need to brush up on how generators are implemented in JavaScript. Additionally, I'm not going to make much commentary on what kinds of problems generators are useful for. Personally, I find that the use cases where generators are helpful are pretty small, but they do exist! But without further ado, let's jump in!
+
+## Basics of Generator Typing
+
+As of TypeScript 3.6, the `Generator` type now has the signature as follows:
+
+```ts
+interface Generator<T, TReturn, TNext>
+```
+
+This value, or generator _object_, is what's **returned** by a given generator _function_.
+
+In practice, what that means is that `T` is the type of any yielded values **by** the generator, `TReturn` is what the generator **returns**, and `TNext` is what the generator will receive **from** the yield statement. For example:
+
+```ts
+// Has an inferred type of (): Generator<string, boolean, number>
+function* generator() {
+  const a: number = yield 'string';
+  console.log(a);
+  return false;
+}
+```
+
+## Using generators
+
+Let's create a function that we can pass our generator into, and do something with it. I highly recommend opening up a [TypeScript playground](https://www.typescriptlang.org/play?#code/Q). I'll provide a link to the full example a little later when we're ready to run everything.
+
+```ts
+function handleGenerator(
+  generator: () => Generator<string, boolean, number>
+) {
+  const generatorObject = generator();
+  // Note that the first time `next` is called, its parameters are ignored
+  let request = generatorObject.next(1);
+  console.log('request is ', request);
+  request = generatorObject.next(2);
+  console.log('request is now', request);
+}
+```
+
+Here we define a function which takes as a parameter a generator **function** which returns a generator **object**. This nuance is important. A generator function returns an instantiation of a new generator object. This means we can provide it additional parameters to supplements it internal state, and we can reuse it. More on that later.
+
+Once we obtain `generatorObject`, in order to use it we have to understand the [Iterator protocol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols). In short, using a generator object requires iterating through its execution instruction. Each call of `next` will run the generator until it `yields` - providing us with an `IteratorResult`.
+
+### IteratorResult for Generator
+
+An `IteratorResult` is an object that has two keys - **value** and **done**.
+
+`value` will always have the type of _both_ `T` and `TReturn`, from the generator's type. In this case, it's `string | boolean`.
+
+`done` is a boolean that indicates whether or not the generator is exhausted.
+
+Question: What happens when you call `next` on an exhausted generator?
+
+### Execution results
+
+Now that we have everything in place, notice that we have a few `console.log` statements in there. What do you think will get logged? What will be the value of `a` in our `generator` function? Make a prediction, and add the following to your playground, or you can use [this link](https://www.typescriptlang.org/play?#code/GYVwdgxgLglg9mAVAAgOYFMzoE4EMpzYAUAlMgN4CwAUMshAgM5TK4BcyYIAtgEY7IAvMgCeMdABsAJsgBEzbDDCpZAbhp0GYRnAnoAdBLioiuEutrJs6KCGxhkwXBMboLAXxo1QkWAmQAFrhgUnoA4pg4+IREGFh4BNgcpEIAfMgR8dHYADwKSqgANMi8cLrowcVcfDipZFSWmkwscVGJAPK8AFbo0EJokQkx5hp0yAD048gAcnBQ6MhQQSxLC8Aw2MyLMNwLAAZYAB5Qe8gwjPTOelLFMFAXAA64eLvzm6zWZ6hghOhSo3Q9CxrIwQBIWMJWkNsJ0etB9EcoEQAIwjRr0JjlQzGIggsFQNFjKzoUHg-pQ7Kw3pQBHoY5EABMhLGWh0emxJjx4LRnmoNCCIXCg2ysWFiXMQA).
+
+Full code:
+
+```ts
+function* generator() {
+  const a: number = yield 'string';
+  console.log(a);
+  return false;
+}
+
+function handleGenerator(
+  generator: () => Generator<string, boolean, number>
+) {
+  const generatorObject = generator();
+  // Note that the first time `next` is called, its parameters are ignored
+  let result = generatorObject.next(1);
+  console.log(result);
+  result = generatorObject.next(2);
+  console.log(result);
+}
+
+handleGenerator(generator);
+```
+
+Were the results what you expected?
+
+### Huh?
+
+Perhaps unexpectedly, the value of `a` is not `1`, but rather `2`. What happens to the first value we pass into next? Well, to be honest, it doesn't go anywhere because it has no where to go to. When we first invoke our `generator` function, we haven't executed any of the code inside of it yet. It's not until our first call to `next`, where we're passing in `1`, that the generator starts running. The path of execution looks as follows:
+
+- `handleGenerator` calls `generator`, which returns `generatorObject`
+- `handleGenerator` calls `next(1)` which starts and delegates to the `generatorObject`
+- `generatorObject` begins running, and `yields` back with a value of `"string"`
+- `handleGenerator` logs the response and delegates back by calling `next(2)`
+- `generatorObject` receives the value of `2`, logs it, and returns `false`
+- `handleGenerator` logs the response
+
+Because the input of `generator` is being provided when we invoke it, and we're not receiving any parameters from outside functions until we call `yield`, the first call to `next` for generator objects will always have its parameters ignored.
+
+## Limitations of TypeScript
+
+Let's say that I have a generator acting as a [coroutine](https://exploringjs.com/es6/ch_generators.html#_roles-played-by-generators) that is responsible for receiving an `action`, and depending on that action will provide a specific `response`, where the types differ depending on the action requested.
+
+```ts
+enum Action {
+  PickNumber = 'pickNumber',
+  PickLetter = 'pickLetter',
+}
+
+function handleGenerator(
+  generator: () => Generator<
+    Action,
+    Action,
+    string | number
+  >
+) {
+  const generatorObject = generator();
+  let result = generatorObject.next();
+  while (!result.done) {
+    if (result.value === Action.PickNumber) {
+      result = generatorObject.next(1);
+    } else if (result.value === Action.PickLetter) {
+      result = generatorObject.next('c');
+    }
+  }
+}
+```
+
+While this is a very poor example, this same pattern is used in a lot of applications, such as `redux-saga`, `coroutine`, and more. I've personally found it useful to build out custom user-driven workflows that permit task pausing and re-delegation. However, typing it becomes a bit of a challenge with TypeScript.
+
+With this construction, we can know that if our generator `yields` an `Action` of `PickNumber`, we should get a `number`. If it's `PickString`, the `TNext` value ought to be `string`. Is there a way to build a generator such that TypeScript can correctly infer the `yielded` value based on the `Action` provided?
+
+### Naive approach
+
+```ts
+function* firstGenerator(): Generator<
+  Action,
+  void,
+  string | number
+> {
+  const num = yield Action.PickNumber;
+  //    ^ string | number
+  const str = yield Action.PickLetter;
+  //    ^ string | number
+}
+```
+
+Unfortunately, TypeScript can't provide it with this approach. According to the [open issue on GitHub](https://github.com/microsoft/TypeScript/issues/32523), in order for TypeScript to support this, it would need to support Higher Kinded Types - a level of abstraction _above_ a type. While TypeScript may support them in the future, we'll have to find another way.
+
+### Generator delegation
+
+Thankfully, some [brilliant folks](https://github.com/microsoft/TypeScript/issues/36855#issuecomment-588286256) have found a very useful workaround - using generator delegation. Instead of using `yield` directly, we can add a middleware generator that we delegate (`yield*` to) to that can provide us with the correct type.
+
+First, we're going to need some types that will allow us to generically infer to the return type based on the action we're providing.
+
+```ts
+enum Action {
+  PickNumber,
+  PickLetter,
+}
+type ActionType = {
+  [Action.PickLetter]: string;
+  [Action.PickNumber]: number;
+};
+
+type InferredPick<T extends Action> = Generator<
+  Action,
+  ActionType[T],
+  string | number
+>;
+```
+
+Here I've added two types - `ActionType` which maps a given `Action` to its return type, and `InferredPick` which changes the `TReturn` type to the corresponding type based on the `Action` provided in the generic parameters. Next, we'll need our middleware.
+
+```ts
+function* pick<T extends Action>(
+  action: T
+): InferredPick<T> {
+  const result = yield action;
+  return result as ActionType[T];
+}
+```
+
+Here, we're defining a type variable `T` that extends the `Action` enum, and we use that to provide the type for the `action` parameter we're submitting. We return our new generic `InferredPick` type, which hopefully should allow us to type things correctly. Note: the `as ActionType[T]` cast is required to allow us to defer the type resolution until its used.
+
+Alright, let's give it a try!
+
+```ts
+function* delegatingGenerator(): Generator<
+  Action,
+  void,
+  string | number
+> {
+  const num = yield* pick(Action.PickNumber);
+  //    ^ number
+  const str = yield* pick(Action.PickLetter);
+  //    ^ string
+}
+```
+
+It works! You can view a [full example](https://www.typescriptlang.org/play?ts=4.1.2#code/KYOwrgtgBAggxgFwJYHsRQN4FgBQV9QAKScA1gHKQBGwATlALxQBEADiRdXcwDS4FEOAGWAIEdRi3ZkRY7rgC+uBAE9WwWIlQgAKmo1NseAgG14yNADpiM0eNoBdAFxQAzglpIQAcwDc-U3Ntaw5KCBpHF3Bwun8cJRxlfSgASRAAMzpaYAATG1IAHh0oYAAPcRAc100LEAA+SQBxUDoAQwQUWgKgtB4a7T11Ex0HPvdPHygAHyhoiLq43HSwEC00KAALVsqAG2BmkDaO2gAKbxbads6XE4BKRgaDo87utZA+gDcUJByxjy9vNNZlxaHV7kYBHA0O4oOdDpdjgB5KgAK2AiEkcOep1ucQEewQUGyrjAO0JTCxCM6yLRiEsh3KdzxBAA7hskHsoCcAITE0kISw5NDAcEBAT4JDpLl8smWD6tHZgAwMJg9EAhMhhCKi4zi8Uy8mwi5XWg09EChkIE4ARlxYvFChKO1cGkl0uAJNl8sVytVbw1pFk9h1er1BsxxqRqPN9LKVuYcGYt3tAgSqcUuCWKzeACooNJCsU46Aqv00HUTq03i4dLcXGlMrRsnkOEUGhCCFCQDDw0wVEhgDsclAq7VmfhsggwLR0OHWtU1YNgMMHHEElnVrU8+kkLR3E8qTiXAeTa9ap9vr83P9JjM5nR2-auzDopJ+4Ph2qA1rYvaAPR-gIAB614TICd4gk+0KEuMb4DkOZbqvkQa-rqUAAcBoEAkC960BmiQ4Msm7aHmOSDsA3jtACJ7HHcx6Ri8aoXj8fxgThIKPmhz6Eq+fbwTkeYFicX75D+tB2mhGEECBuFQd2MEeHBH6CRwwn+shdh0BJAhSfgIHjACihAA) for yourself.
+
+## Summary
+
+We've covered quite a bit in this article, including:
+
+- The nuances between a generator function and a generator object
+- How to type generators for most use cases
+- How to (ab)use generator delegation to provide a higher level of type inference for coroutines.
+
+Big thanks to the TypeScript community over at Discord for helping me with a lot of these problems. I've found them to be incredibly helpful and responsive, and lead me to a lot of the solutions that I've shared here.

@@ -25,11 +25,11 @@ module.exports = {
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
     'plugin:jsx-a11y/recommended',
-    'prettier/@typescript-eslint',
-    'plugin:prettier/recommended',
   ],
   rules: {
-    'prettier/prettier': ['error', {}, { usePrettierrc: true }],
+    // Conflicts with prettier
+    'object-curly-newline': 'off',
+    'react/jsx-one-expression-per-line': 'off',
     'react/react-in-jsx-scope': 'off',
     // Props spreading is fine by me for delegated props
     'react/jsx-props-no-spreading': 'off',
