@@ -4,7 +4,7 @@ const mdx = require('@mdx-js/mdx');
 module.exports = {
   purge: {
     content: [
-      './src/pages/**/*.{tsx}',
+      './src/pages/**/*.tsx',
       './src/components/**/*.tsx',
       './next.config.js',
       './src/styles/**/*.css',
