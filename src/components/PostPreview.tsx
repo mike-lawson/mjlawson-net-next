@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import formatRelative from 'date-fns/formatRelative';
 import { Post } from '@/types';
 
 type Props = {
@@ -19,7 +18,7 @@ export default function PostPreview({ post }: Props) {
           {meta.title}
         </a>
       </Link>
-      <div className="text-xs text-gray-500">{formatRelative(meta.posted, new Date())}</div>
+      <div className="text-xs text-gray-500">{meta.posted.toLocaleDateString()}</div>
       <div className="mt-2 prose-sm sm:prose md:prose-lg">
         <Component />
       </div>
