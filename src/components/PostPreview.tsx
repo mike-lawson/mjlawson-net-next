@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Post } from '@/types';
 
@@ -10,6 +11,13 @@ export default function PostPreview({ post }: Props) {
     link,
     module: { default: Component, meta },
   } = post;
+  const [displayTime, setDisplayTime] = useState(meta.posted.toLocaleDateString());
+
+  useEffect(() => {
+    if (navigator && navigator.language) {
+      setDisplayTime(new Intl.DateTimeFormat(navigator.language).format(meta.posted));
+    }
+  }, [meta.posted]);
 
   return (
     <div className="mb-10">
@@ -18,7 +26,7 @@ export default function PostPreview({ post }: Props) {
           {meta.title}
         </a>
       </Link>
-      <div className="text-xs text-gray-500">{meta.posted.toLocaleDateString()}</div>
+      <div className="text-xs text-gray-500">{displayTime}</div>
       <div className="mt-2 prose-sm sm:prose md:prose-lg">
         <Component />
       </div>
