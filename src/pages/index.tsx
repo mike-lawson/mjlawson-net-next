@@ -4,5 +4,11 @@ import getPosts from '@/getPostPreviews';
 const posts = getPosts();
 
 export default function IndexPage() {
-  return posts.map((post) => <PostPreview key={post.module.meta.title} post={post} />);
+  return (
+    <>
+      {posts.map((post) => (
+        <PostPreview key={post.module.meta.title} post={post} />
+      ))}
+    </>
+  );
 }

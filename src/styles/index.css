@@ -1,5 +1,18 @@
 @tailwind base;
 @tailwind components;
+
+.link {
+  @apply text-gray-600 font-bold;
+}
+
+.link:active {
+  @apply text-black;
+}
+
+.link:hover {
+  @apply text-gray-800;
+}
+
 @tailwind utilities;
 
 /* Code syntax styling */

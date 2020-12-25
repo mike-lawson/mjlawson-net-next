@@ -6,7 +6,6 @@ export default class MyDocument extends Document {
     return { ...initialProps };
   }
 
-  // Pretty standard boilerplate - unnecessary, but may be useful later
   render() {
     return (
       <Html>
