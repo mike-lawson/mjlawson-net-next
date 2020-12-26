@@ -11,7 +11,7 @@ steps:
     entrypoint: npm
     args: ['run', 'build']
     env:
-      - 'GA_TAG_ID=$GA_TAG_ID'
+      - 'GA_TAG_ID=$_GA_TAG_ID'
   - name: 'node:12-alpine'
     entrypoint: './node_modules/.bin/firebase'
     args: ['deploy', '--project', '$_ENVIRONMENT', '--token', '$_TOKEN']
