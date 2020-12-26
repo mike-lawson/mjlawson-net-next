@@ -1,5 +1,6 @@
-import { PostMeta } from '@/types';
+import Head from 'next/head';
 import { useEffect, useState } from 'react';
+import { PostMeta } from '@/types';
 
 type Props = {
   meta: PostMeta;
@@ -15,12 +16,18 @@ export default function Post({ meta, children }: Props) {
   }, [meta.posted]);
 
   return (
-    <div>
-      <h1 className="text-2xl md:text-3xl font-black text-red-700">{meta.title}</h1>
-      <div className="text-xs mt-1 md:text-sm text-gray-600">
-        <time dateTime={meta.posted.toISOString()}>{displayTime}</time>
+    <>
+      <Head>
+        <title>Mike Lawson - {meta.title}</title>
+        {meta.description && <meta name="description" content={meta.description} />}
+      </Head>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-black text-red-700">{meta.title}</h1>
+        <div className="text-xs mt-1 md:text-sm text-gray-600">
+          <time dateTime={meta.posted.toISOString()}>{displayTime}</time>
+        </div>
+        <article className="mt-5 prose-sm prose sm:prose-lg">{children}</article>
       </div>
-      <article className="mt-5 prose-sm prose sm:prose-lg">{children}</article>
-    </div>
+    </>
   );
 }

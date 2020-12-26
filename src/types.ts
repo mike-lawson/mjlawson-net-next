@@ -1,5 +1,6 @@
 export type PostMeta = {
   title: string;
+  description?: string;
   posted: Date;
 };
 
