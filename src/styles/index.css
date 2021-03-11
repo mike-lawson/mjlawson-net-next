@@ -112,3 +112,7 @@
 .token.italic {
   font-style: italic;
 }
+
+.legend-svg {
+  margin-left: 60px;
+}

@@ -13,13 +13,13 @@ export default function SleepPage() {
 
   const formatDay = (d: Date) => {
     if (d.getDate() === 1) {
-      return d3.timeFormat('%b %-d');
+      return d3.timeFormat('%b %-d')(d);
     }
     return d3.timeFormat('%-d')(d);
   };
 
   const formatTick = (d: number): string => {
-    if (d % 4 !== 2) {
+    if (d % 4 !== 0) {
       return '';
     }
     let hour = Math.floor(d / 4);
@@ -54,11 +54,11 @@ export default function SleepPage() {
       top: 20,
       right: 0,
       bottom: 0,
-      left: 20,
+      left: 70,
     };
     const legendValues = ['Awake', 'In Bed', 'Asleep', 'Unknown'];
     const values = [SleepState.Awake, SleepState.InBed, SleepState.Asleep, SleepState.Unknown];
-    const colors = ['#f1f1f1', '#f5a896', '#bf0000', '#c6c6c6'];
+    const colors = ['#f7efee', '#f1918d', '#d6003d', '#9bbc8b'];
 
     const dateExtent = d3.extent(data, (d) => d.date) as [Date, Date];
     if (!dateExtent[0] || !dateExtent[1]) {
@@ -108,13 +108,15 @@ export default function SleepPage() {
       .selectAll('rect')
       .data(data)
       .join('rect')
+      .attr('data-date', (d) => d.date.toString())
       .attr('x', (d) => x(d.date.getHours() * 4 + d.date.getMinutes() / 15))
       .attr('y', (d) => y(d3.timeDay(d.date)))
-      .attr('width', y.bandwidth() - 1)
+      .attr('width', width / 96)
       .attr('height', 20)
       .attr('fill', (d) => colorScale(d.state.toString()));
 
     const legendSvg = d3.select(d3LegendContainer.current);
+    legendSvg.selectAll('*').remove();
 
     legendSvg.append('g').attr('class', 'legendLinear').attr('transform', 'translate(20, 20');
 
@@ -139,7 +141,7 @@ export default function SleepPage() {
         <h2 className="mb-8">But tracking it doesn&apos;t have to be</h2>
         <div className="flex w-full">
           <div className="w-full prose sm:prose-lg">
-            <svg viewBox={`0 0 ${width} 50`} ref={d3LegendContainer} />
+            <svg className="legend-svg" viewBox={`0 0 ${width} 50`} ref={d3LegendContainer} />
             <svg viewBox={`0 0 ${width} ${svgHeight}`} ref={d3Container} />
           </div>
         </div>
