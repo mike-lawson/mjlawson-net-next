@@ -3,6 +3,7 @@ import add from 'date-fns/add';
 import parse from 'date-fns/parse';
 import endOfDay from 'date-fns/endOfDay';
 import isBefore from 'date-fns/isBefore';
+import format from 'date-fns/format';
 
 export enum SleepState {
   Awake,
@@ -14,6 +15,14 @@ export enum SleepState {
 export type SleepRow = {
   date: Date;
   state: SleepState;
+};
+
+type Day = 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+
+export type ScatterplotRow = {
+  date: Date;
+  x: Day;
+  y: number;
 };
 
 type RowData = {
@@ -95,6 +104,24 @@ export const parseSleepData = (input: string): SleepRow[] => {
   }
 
   return sleepRows;
+};
+
+export const buildScatterplotData = (input: SleepRow[]): ScatterplotRow[] => {
+  console.log('Got called');
+  let currentState = SleepState.Unknown;
+  const output: ScatterplotRow[] = [];
+  input.forEach((row) => {
+    const { date, state } = row;
+    if (state === SleepState.Asleep && state !== currentState) {
+      output.push({
+        date,
+        x: format(date, 'cccc') as Day,
+        y: parseInt(format(date, 'H'), 10),
+      });
+    }
+    currentState = state;
+  });
+  return output;
 };
 
 const parseDataRow = (row: string): RowData => {

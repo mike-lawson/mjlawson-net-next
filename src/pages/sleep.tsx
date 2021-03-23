@@ -6,16 +6,26 @@ import * as d3Legend from 'd3-svg-legend';
 import startOfDay from 'date-fns/startOfDay';
 import format from 'date-fns/format';
 
-import { fetchSleepData, parseSleepData, SleepRow, SleepState } from '@/helpers/sleepFns';
+import {
+  buildScatterplotData,
+  fetchSleepData,
+  parseSleepData,
+  ScatterplotRow,
+  SleepRow,
+  SleepState,
+} from '@/helpers/sleepFns';
 
 export default function SleepPage() {
   const d3Container = useRef(null);
   const d3LegendContainer = useRef(null);
+  const scatterContainer = useRef(null);
   const [data, setData] = useState<SleepRow[]>([]);
   const [tableData, setTableData] = useState([]);
   const [averageData, setAverageData] = useState(null);
+  const [scatterPlotData, setScatterPlotData] = useState<ScatterplotRow[]>([]);
   const [svgHeight, setSvgHeight] = useState(300);
   const width = 954;
+  const scatterHeight = 400;
 
   const formatDay = (d: Date) => {
     if (d.getDate() === 1) {
@@ -97,19 +107,66 @@ export default function SleepPage() {
     averageData.averageInBedPerDay /= dataByDate.length;
     averageData.averageSleptPerDay /= dataByDate.length;
     setAverageData(averageData);
+    const plotData = buildScatterplotData(data);
+    setScatterPlotData(plotData);
   }, [data]);
+
+  useEffect(() => {
+    if (scatterPlotData.length === 0 || !scatterContainer.current) {
+      return;
+    }
+    const margin = { left: 25, right: 30, top: 20, bottom: 20 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = scatterHeight - margin.top - margin.bottom;
+    const xValue = (d) => d.x;
+    const yValue = (d) => d.y;
+
+    const svg = d3.select(scatterContainer.current);
+    svg.selectAll('*').remove();
+    const g = svg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+    const xAxisG = g.append('g').attr('transform', `translate(0, ${innerHeight})`);
+    const yAxisG = g.append('g');
+
+    const xScale = d3.scalePoint();
+    const yScale = d3.scaleLinear();
+
+    const xAxis = d3.axisBottom(xScale);
+
+    const yTicks = 12;
+    const yAxis = d3.axisLeft(yScale).ticks(yTicks);
+
+    xScale
+      .domain(['', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
+      .range([0, innerWidth]);
+
+    yScale.domain([0, 23]).range([innerHeight, 0]);
+
+    g.selectAll('circle')
+      .data(scatterPlotData)
+      .enter()
+      .append('circle')
+      .attr('cx', (d) => xScale(xValue(d)))
+      .attr('cy', (d) => yScale(yValue(d)))
+      .attr('fill', '#d6003d')
+      .attr('full-opacity', 0.6)
+      .attr('r', 5);
+
+    xAxisG.call(xAxis);
+    yAxisG.call(yAxis);
+  }, [scatterPlotData]);
 
   useEffect(() => {
     if (!d3Container.current || !d3LegendContainer.current || data.length === 0) {
       return;
     }
-    buildTabularData();
     const margin = {
       top: 20,
       right: 0,
       bottom: 0,
-      left: 70,
+      left: 25,
     };
+    buildTabularData();
     const legendValues = ['Awake', 'In Bed', 'Asleep', 'Unknown'];
     const values = [SleepState.Awake, SleepState.InBed, SleepState.Asleep, SleepState.Unknown];
     const colors = ['#f7efee', '#f1918d', '#d6003d', '#9bbc8b'];
@@ -172,7 +229,7 @@ export default function SleepPage() {
     const legendSvg = d3.select(d3LegendContainer.current);
     legendSvg.selectAll('*').remove();
 
-    legendSvg.append('g').attr('class', 'legendLinear').attr('transform', 'translate(20, 20');
+    legendSvg.append('g').attr('class', 'legendLinear');
 
     const legendLinear = d3Legend
       .legendColor()
@@ -197,12 +254,14 @@ export default function SleepPage() {
           <div className="w-full prose sm:prose-lg">
             <svg className="legend-svg" viewBox={`0 0 ${width} 50`} ref={d3LegendContainer} />
             <svg viewBox={`0 0 ${width} ${svgHeight}`} ref={d3Container} />
+            <h3>Time asleep</h3>
+            <svg viewBox={`0 0 ${width} ${scatterHeight}`} ref={scatterContainer} />
           </div>
         </div>
         {tableData.length > 0 && (
-          <div className="pt-10 pl-10">
-            <div className="px-5 py-2 bg-yellow-50 rounded-t-xl">
-              <table className="w-full table-auto">
+          <div className="pt-10">
+            <div className="md:px-5 py-2 bg-yellow-50 rounded-t-xl">
+              <table className="w-full table-auto text-xs md:text-sm">
                 <thead className="text-red-700">
                   <tr>
                     <th className="px-4 pb-2 w-1/5 text-center">Date</th>
@@ -234,32 +293,34 @@ export default function SleepPage() {
                   ))}
                 </tbody>
               </table>
-              <div className="text-xs text-red-900 py-2">
+              <div className="text-xs text-red-900 py-2 px-2">
                 *Longest sleep counts sleep cycles that wrap days on the day the cycle ends
               </div>
             </div>
           </div>
         )}
         {!!averageData && (
-          <div className="pt-5 pl-10">
-            <div className="px-5 py-2 bg-yellow-50 rounded-t-xl">
+          <div className="pt-5">
+            <div className="md:px-5 py-2 bg-yellow-50 rounded-t-xl">
               <table className="w-full table-auto">
-                <tr>
-                  <th className="border-b border-red-800 text-red-700 font-semibold px-4 py-2">
-                    Average Slept
-                  </th>
-                  <td className="border-b border-red-800 text-red-900 font-semibold px-4 py-2">
-                    {(averageData.averageSleptPerDay / 60).toFixed(2)} hrs
-                  </td>
-                </tr>
-                <tr>
-                  <th className="border-red-800 text-red-700 font-semibold px-4 py-2">
-                    Average Time In Bed
-                  </th>
-                  <td className="border-red-800 text-red-900 font-semibold px-4 py-2">
-                    {(averageData.averageInBedPerDay / 60).toFixed(2)} hrs
-                  </td>
-                </tr>
+                <tbody>
+                  <tr>
+                    <th className="border-b border-red-800 text-red-700 font-semibold px-4 py-2">
+                      Average Slept
+                    </th>
+                    <td className="border-b border-red-800 text-red-900 font-semibold px-4 py-2">
+                      {(averageData.averageSleptPerDay / 60).toFixed(2)} hrs
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="border-red-800 text-red-700 font-semibold px-4 py-2">
+                      Average Time In Bed
+                    </th>
+                    <td className="border-red-800 text-red-900 font-semibold px-4 py-2">
+                      {(averageData.averageInBedPerDay / 60).toFixed(2)} hrs
+                    </td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </div>
