@@ -32,7 +32,11 @@ export const fetchSleepData = async (): Promise<string> => {
 
 export const parseSleepData = (input: string): SleepRow[] => {
   // Split into rows and drop header
-  const rows = input.split('\n').slice(1).map(parseDataRow);
+  const rows = input
+    .split('\n')
+    .slice(1)
+    .filter((x) => x)
+    .map(parseDataRow);
   // Determine the first and last date we will be tracking
   let currentDateTime = rows[0].start;
   // Add another day as a cushion - for now

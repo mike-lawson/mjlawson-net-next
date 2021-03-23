@@ -1,13 +1,19 @@
-import { useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
+import { chain } from 'lodash';
 import Head from 'next/head';
 import * as d3 from 'd3';
 import * as d3Legend from 'd3-svg-legend';
+import startOfDay from 'date-fns/startOfDay';
+import format from 'date-fns/format';
+
 import { fetchSleepData, parseSleepData, SleepRow, SleepState } from '@/helpers/sleepFns';
 
 export default function SleepPage() {
   const d3Container = useRef(null);
   const d3LegendContainer = useRef(null);
   const [data, setData] = useState<SleepRow[]>([]);
+  const [tableData, setTableData] = useState([]);
+  const [averageData, setAverageData] = useState(null);
   const [svgHeight, setSvgHeight] = useState(300);
   const width = 954;
 
@@ -38,18 +44,66 @@ export default function SleepPage() {
   useEffect(() => {
     const inner = async () => {
       const raw = await fetchSleepData();
-      const parsedData = await parseSleepData(raw);
+      const parsedData = parseSleepData(raw);
       setData(parsedData);
     };
 
     inner();
   }, []);
 
+  const buildTabularData = useCallback(() => {
+    let totalAsleep = 0;
+    const dataByDate = chain(data)
+      .groupBy((row) => startOfDay(row.date))
+      .map((rows, date) =>
+        rows.reduce(
+          (acc, row) => {
+            if (row.state === SleepState.Asleep) {
+              acc.timeInBed += 15;
+              totalAsleep += 15;
+              acc.timeAsleep += 15;
+            } else if (totalAsleep > 0) {
+              if (totalAsleep > acc.longestSleep) {
+                acc.longestSleep = totalAsleep;
+              }
+              totalAsleep = 0;
+            }
+            if (row.state === SleepState.InBed) {
+              acc.timeInBed += 15;
+            }
+            return acc;
+          },
+          {
+            date: new Date(date),
+            timeAsleep: 0,
+            longestSleep: 0,
+            timeInBed: 0,
+          },
+        ),
+      )
+      .value();
+    setTableData(dataByDate);
+    // set average data
+    const averageData = dataByDate.reduce(
+      (acc, d) => ({
+        averageSleptPerDay: acc.averageSleptPerDay + d.timeAsleep,
+        averageInBedPerDay: acc.averageInBedPerDay + d.timeInBed,
+      }),
+      {
+        averageSleptPerDay: 0,
+        averageInBedPerDay: 0,
+      },
+    );
+    averageData.averageInBedPerDay /= dataByDate.length;
+    averageData.averageSleptPerDay /= dataByDate.length;
+    setAverageData(averageData);
+  }, [data]);
+
   useEffect(() => {
     if (!d3Container.current || !d3LegendContainer.current || data.length === 0) {
       return;
     }
-
+    buildTabularData();
     const margin = {
       top: 20,
       right: 0,
@@ -128,7 +182,7 @@ export default function SleepPage() {
 
     // @ts-ignore
     legendSvg.select('.legendLinear').call(legendLinear);
-  }, [data]);
+  }, [data, buildTabularData]);
 
   return (
     <>
@@ -145,6 +199,71 @@ export default function SleepPage() {
             <svg viewBox={`0 0 ${width} ${svgHeight}`} ref={d3Container} />
           </div>
         </div>
+        {tableData.length > 0 && (
+          <div className="pt-10 pl-10">
+            <div className="px-5 py-2 bg-yellow-50 rounded-t-xl">
+              <table className="w-full table-auto">
+                <thead className="text-red-700">
+                  <tr>
+                    <th className="px-4 pb-2 w-1/5 text-center">Date</th>
+                    <th className="px-4 pb-2 w-1/5 text-center">Longest Sleep*</th>
+                    <th className="px-4 pb-2 w-1/5 text-center">Time Asleep</th>
+                    <th className="px-4 pb-2 w-1/5 text-center">Total Time in Bed</th>
+                    <th className="px-4 pb-2 w-1/5 text-center">Idle Time in Bed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableData.map((row) => (
+                    <tr key={row.date.toISOString()}>
+                      <td className="border-b border-red-800 text-red-900 font-medium px-4 py-2">
+                        {format(row.date, 'ccc MMM do')}
+                      </td>
+                      <td className="border-b border-red-800 text-red-900 font-semibold px-4 py-2">
+                        {row.longestSleep / 60} hrs
+                      </td>
+                      <td className="border-b border-red-800 text-red-900 font-semibold px-4 py-2">
+                        {row.timeAsleep / 60} hrs
+                      </td>
+                      <td className="border-b border-red-800 text-red-900 font-semibold px-4 py-2">
+                        {row.timeInBed / 60} hrs
+                      </td>
+                      <td className="border-b border-red-800 text-red-900 font-semibold px-4 py-2">
+                        {(row.timeInBed - row.timeAsleep) / 60} hrs
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="text-xs text-red-900 py-2">
+                *Longest sleep counts sleep cycles that wrap days on the day the cycle ends
+              </div>
+            </div>
+          </div>
+        )}
+        {!!averageData && (
+          <div className="pt-5 pl-10">
+            <div className="px-5 py-2 bg-yellow-50 rounded-t-xl">
+              <table className="w-full table-auto">
+                <tr>
+                  <th className="border-b border-red-800 text-red-700 font-semibold px-4 py-2">
+                    Average Slept
+                  </th>
+                  <td className="border-b border-red-800 text-red-900 font-semibold px-4 py-2">
+                    {(averageData.averageSleptPerDay / 60).toFixed(2)} hrs
+                  </td>
+                </tr>
+                <tr>
+                  <th className="border-red-800 text-red-700 font-semibold px-4 py-2">
+                    Average Time In Bed
+                  </th>
+                  <td className="border-red-800 text-red-900 font-semibold px-4 py-2">
+                    {(averageData.averageInBedPerDay / 60).toFixed(2)} hrs
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
