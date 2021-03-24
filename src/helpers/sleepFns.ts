@@ -107,7 +107,6 @@ export const parseSleepData = (input: string): SleepRow[] => {
 };
 
 export const buildScatterplotData = (input: SleepRow[]): ScatterplotRow[] => {
-  console.log('Got called');
   let currentState = SleepState.Unknown;
   const output: ScatterplotRow[] = [];
   input.forEach((row) => {
