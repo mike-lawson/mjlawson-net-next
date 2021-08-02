@@ -35,7 +35,7 @@ module.exports = {
             },
             code: {
               color: 'rgb(146 41 37)',
-              backgroundColor: 'rgba(254, 243, 199)',
+              backgroundColor: 'rgb(255 249 227)',
               padding: '0 3px',
               fontWeight: 600,
               fontSize: '1rem',
