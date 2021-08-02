@@ -51,7 +51,7 @@ function handleGenerator(
 }
 ```
 
-Here we define a function which takes as a parameter a generator **function** which returns a generator **object**. This nuance is important. A generator function returns an instantiation of a new generator object. This means we can provide it additional parameters to supplements it internal state, and we can reuse it. More on that later.
+Here we define a function which takes as a parameter a generator **function** which returns a generator **object**. This nuance is important. A generator function returns an instantiation of a new generator object. This means we can provide it additional parameters to supplement its internal state, and we can reuse it. More on that later.
 
 Once we obtain `generatorObject`, in order to use it we have to understand the [Iterator protocol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols). In short, using a generator object requires iterating through its execution instruction. Each call of `next` will run the generator until it `yields` - providing us with an `IteratorResult`.
 
