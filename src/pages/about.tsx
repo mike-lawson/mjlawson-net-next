@@ -4,8 +4,8 @@ export default function AboutPage() {
   return (
     <>
       <Head>
-        <title>Mike Lawson - Swinging the abstraction hammer since 2013</title>
-        <meta name="description" content="Who is Mike Lawson? The answers will (not) shock you." />
+        <title>Mike Lawson - </title>
+        <meta name="description" content="Who is Mike Lawson?" />
       </Head>
       <div>
         <h1 className="text-center text-2xl md:text-3xl mb-2 font-bold text-red-700">
@@ -16,10 +16,10 @@ export default function AboutPage() {
           <div className="w-full prose sm:prose-lg md:w-3/5 md:pr-10">
             <p>
               Hi! I&apos;m Mike. Since 2013, I&apos;ve been responsible for building, testing, and
-              ensuring the reliability of web applications in a variety of contexts and industries.
-              I&apos;ve built membership acquisition funnels for e-commerce, visualizations and
-              dashboards for data-driven applications, and currently I&apos;m leading development of
-              a voice-first mobile application to improve efficiency in warehouses.
+              ensuring the reliability of web applications. I&apos;ve built membership acquisition
+              funnels for e-commerce, visualizations and dashboards for data-driven applications,
+              and previously lead development of a voice-first mobile application in
+              hybrid-automated warehouses.
             </p>
             <p>
               With all that in mind, I feel confident that I can begin giving back to the community
@@ -50,7 +50,7 @@ export default function AboutPage() {
             <img
               className="rounded md:h-1/2 lg:h-3/5 md:object-cover md:object-center"
               src="/images/headshot.jpg"
-              alt="Mike Lawson looking out, the crowns of trees shielding the sky behind him"
+              alt="Mike looking out"
             />
           </div>
         </div>
